@@ -1,35 +1,75 @@
 #!/bin/bash
 
-mkdir -p submission_reminder_app/{app,modules,assets,config}
+mkdir -p submission_reminder_app
 
-touch submission_reminder_app/app/reminder.sh
-touch submission_reminder_app/modules/functions.sh
-touch submission_reminder_app/assets/submissions.txt
-touch submission_reminder_app/config/config.env
-touch submission_reminder_app/startup.sh
+mkdir -p submission_reminder_app/assets
+mkdir -p submission_reminder_app/config
+mkdir -p submission_reminder_app/modules
+mkdir -p submission_reminder_app/app
 
-cat << 'EOF' > submission_reminder_app/app/reminder.sh
+cat <<EOL > submission_reminder_app/assets/submissions.txt
+student, assignment, submission status
+here, Shell Navigation, submitted
+Noel, Shell Navigation, not submitted
+Alice, Shell Navigation, submitted
+Bob, Shell Navigation, not submitted
+Charlie, Shell Navigation, submitted
+Diana, Shell Navigation, not submitted
+Eve, Shell Navigation, submitted
+EOL
+
+cat <<EOL > submission_reminder_app/config/config.env
+ASSIGNMENT="Shell Navigation"
+DAYS_REMAINING=2
+EOL
+
+cat <<EOL > submission_reminder_app/modules/functions.sh
 #!/bin/bash
-echo "This script checks for submissions and reminds students."
-EOF
 
-cat << 'EOF' > submission_reminder_app/modules/functions.sh
-#!/bin/bash
-function read_submissions {
-    echo "Reading submissions..."
+function check_submissions {
+    local submissions_file=\$1
+    echo "Checking submissions in \$submissions_file"
+
+    while IFS=, read -r student assignment status; do
+        # Remove leading and trailing whitespace
+        student=\$(echo "\$student" | xargs)
+        assignment=\$(echo "\$assignment" | xargs)
+        status=\$(echo "\$status" | xargs)
+
+        if [[ "\$assignment" == "\$ASSIGNMENT" && "\$status" == "not submitted" ]]; then
+            echo "Reminder: \$student has not submitted the \$ASSIGNMENT assignment!"
+        fi
+    done < <(tail -n +2 "\$submissions_file") # Skip the header
 }
-EOF
+EOL
 
-cat << 'EOF' > submission_reminder_app/config/config.env
-EOF
+cat <<EOL > submission_reminder_app/app/reminder.sh
+#!/bin/bash
 
-cat << 'EOF' >> submission_reminder_app/assets/submissions.txt
-Student5, 2024-10-01, Not Submitted
-Student6, 2024-10-02, Submitted
-Student7, 2024-10-03, Submitted
-Student8, 2024-10-04, Not Submitted
-Student9, 2024-10-05, Submitted
-EOF
+source ./config/config.env
+source ./modules/functions.sh
 
-echo "Environment created successfully!"
+submissions_file="./assets/submissions.txt"
+
+
+echo "Assignment: \$ASSIGNMENT"
+echo "Days remaining to submit: \$DAYS_REMAINING days"
+echo "--------------------------------------------"
+
+check_submissions \$submissions_file
+EOL
+
+cat <<EOL > submission_reminder_app/startup.sh
+#!/bin/bash
+
+echo "Starting the submission reminder application..."
+
+./app/reminder.sh
+EOL
+
+chmod +x submission_reminder_app/app/reminder.sh
+chmod +x submission_reminder_app/startup.sh
+chmod +x submission_reminder_app/modules/functions.sh
+
+echo "Environment setup complete!"
 
